@@ -5,6 +5,19 @@ const osc = require('node-osc');
 
 const NUM_LEDS = 20;
 const pixelData = new Uint32Array(NUM_LEDS);
+let r_current = 0;
+let g_current = 0;
+let b_current = 0;
+
+let r_destination = 0;
+let g_destination = 0;
+let b_destination = 0;
+
+let r_gradient = 1;
+let g_gradient = 1;
+let b_gradient = 1;
+
+let scalar = 0;
 
 ws281x.init(NUM_LEDS);
 
@@ -16,71 +29,96 @@ process.on('SIGINT', function () {
   });
 });
 
-function write_lights(r, g, b, scalar) {
-  const r_scaled = parseInt(r * scalar / 127);
-  const g_scaled = parseInt(g * scalar / 127);
-  const b_scaled = parseInt(b * scalar / 127);
-  console.log('about to write ', r_scaled, g_scaled, b_scaled);
+function scale() {
+  if (r_current !== r_destination) {
+    if (r_current > r_destination) {
+      r_current -= r_gradient;
+    } else if (r_current < r_destination) {
+      r_current += r_gradient;
+    }
+  }
+  if (g_current !== g_destination) {
+    if (g_current > g_destination) {
+      g_current -= g_gradient;
+    } else if (g_current < g_destination) {
+      g_current += g_gradient;
+    }
+  }
+  if (b_current !== b_destination) {
+    if (b_current > b_destination) {
+      b_current -= b_gradient;
+    } else if (b_current < b_destination) {
+      b_current += b_gradient;
+    }
+  }
+}
+
+setInterval(() => {
+  scale();
+  write_lights(r_current, g_current, b_current);
+}, 1);
+
+function rgb2Int(red, green, blue) {
+  return ((red & 0xff) << 16) + ((green & 0xff) << 8) + (blue & 0xff);
+}
+
+function write_lights(red, green, blue) {
+  //console.log('about to write', red, green, blue);
   for (let i = 0; i < NUM_LEDS; i++) {
-    pixelData[i] = rgb2Int(r_scaled, g_scaled, b_scaled);
+    pixelData[i] = rgb2Int(red, green, blue);
   }
   ws281x.render(pixelData);
 }
-var oscServer = new osc.Server(1337, '0.0.0.0');
+
+
+const oscServer = new osc.Server(1337, '0.0.0.0');
+
 oscServer.on("message", function (msg, rinfo) {
-  if (msg[1] !== 0) {
-    switch (msg[0]) {
-      case '/C3':
-        write_lights(255, 0, 0, msg[1]);
+  // console.log('message!', msg);
+  if (msg[0] === '/note') {
+    switch (String(msg[1])) {
+      case '60':
+        r_destination = parseInt(255 * scalar);
+        g_destination = parseInt(0   * scalar);
+        b_destination = parseInt(0   * scalar);
         break;
-      case '/D3':
-        write_lights(0, 0, 255, msg[1]);
+      case '62':
+        r_destination = parseInt(0   * scalar);
+        g_destination = parseInt(0   * scalar);
+        b_destination = parseInt(255 * scalar);
         break;
-      case '/E3':
-        write_lights(200, 200, 0, msg[1]);
+      case '64':
+        r_destination = parseInt(200 * scalar);
+        g_destination = parseInt(200 * scalar);
+        b_destination = parseInt(0   * scalar);
         break;
-      case '/F3':
-        write_lights(0, 200, 100, msg[1]);
+      case '65':
+        r_destination = parseInt(0   * scalar);
+        g_destination = parseInt(200 * scalar);
+        b_destination = parseInt(100 * scalar);
         break;
-      case '/G3':
-        write_lights(50, 255, 0, msg[1]);
+      case '67':
+        r_destination = parseInt(50  * scalar);
+        g_destination = parseInt(255 * scalar);
+        b_destination = parseInt(0   * scalar);
         break;
-      case '/A3':
-        write_lights(240, 150, 0, msg[1]);
+      case '69':
+        r_destination = parseInt(240 * scalar);
+        g_destination = parseInt(150 * scalar);
+        b_destination = parseInt(0   * scalar);
         break;
-      case '/B3':
-        write_lights(200, 0, 200, msg[1]);
+      case '71':
+        r_destination = parseInt(200 * scalar);
+        g_destination = parseInt(0   * scalar);
+        b_destination = parseInt(200 * scalar);
         break;
       default:
-        console.log('eyy', msg);
         break;
     }
+  } else if (msg[0] === '/velocity') {
+    scalar = Number(msg[1]);
+    r_destination = parseInt(r_destination * scalar);
+    g_destination = parseInt(g_destination * scalar);
+    b_destination = parseInt(b_destination * scalar);
   }
 });
-
-
-// // ---- animation-loop
-// let offset = 0;
-// setInterval(() => {
-//   for (let i = 0; i < NUM_LEDS; i++) {
-//     pixelData[i] = colorwheel((offset + i*2) % 256);
-//   }
-//
-//   offset = (offset + 1) % 256;
-//   ws281x.render(pixelData);
-// }, 1000 / 30);
-//
-// function colorwheel(pos) {
-//   pos = 255 - pos;
-//   if (pos < 85) {
-//     return rgb2Int(255 - pos * 3, 0, pos * 3);
-//   } else if (pos < 170) {
-//     pos -= 85; return rgb2Int(0, pos * 3, 255 - pos * 3);
-//   } else {
-//     pos -= 170; return rgb2Int(pos * 3, 255 - pos * 3, 0);
-//   }
-// }
-
-function rgb2Int(r, g, b) {
-  return ((r & 0xff) << 16) + ((g & 0xff) << 8) + (b & 0xff);
-}
