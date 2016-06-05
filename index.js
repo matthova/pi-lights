@@ -3,7 +3,7 @@
 const ws281x = require('rpi-ws281x-native');
 const osc = require('node-osc');
 
-const NUM_LEDS = 20;
+const NUM_LEDS = 60;
 const pixelData = new Uint32Array(NUM_LEDS);
 let r_current = 0;
 let g_current = 0;
@@ -16,6 +16,8 @@ let b_destination = 0;
 let r_gradient = 1;
 let g_gradient = 1;
 let b_gradient = 1;
+
+const mult = 4;
 
 let scalar = 0;
 
@@ -32,30 +34,36 @@ process.on('SIGINT', function () {
 function scale() {
   if (r_current !== r_destination) {
     if (r_current > r_destination) {
-      r_current -= r_gradient;
+      r_current = r_current - r_gradient * mult;
     } else if (r_current < r_destination) {
-      r_current += r_gradient;
+      r_current = r_current + r_gradient * mult;   
     }
+    r_current = r_current < 0 ? 0 : r_current;
+    r_current = r_current > 255 ? 255 : r_current;
   }
   if (g_current !== g_destination) {
     if (g_current > g_destination) {
-      g_current -= g_gradient;
+      g_current = g_current - g_gradient * mult;
     } else if (g_current < g_destination) {
-      g_current += g_gradient;
+      g_current = g_current + g_gradient * mult;
     }
+    g_current = g_current < 0 ? 0 : g_current;
+    g_current = g_current > 255 ? 255 : g_current;
   }
   if (b_current !== b_destination) {
     if (b_current > b_destination) {
-      b_current -= b_gradient;
+      b_current = b_current - b_gradient * mult;
     } else if (b_current < b_destination) {
-      b_current += b_gradient;
+      b_current = b_current + b_gradient * mult;
     }
+    b_current = b_current < 0 ? 0 : b_current;
+    b_current = b_current > 255 ? 255 : b_current
   }
 }
 
 setInterval(() => {
   scale();
-  write_lights(r_current, g_current, b_current);
+  write_lights(parseInt(r_current), parseInt(g_current), parseInt(b_current));
 }, 1);
 
 function rgb2Int(red, green, blue) {
@@ -81,36 +89,57 @@ oscServer.on("message", function (msg, rinfo) {
         r_destination = parseInt(255 * scalar);
         g_destination = parseInt(0   * scalar);
         b_destination = parseInt(0   * scalar);
+        r_gradient = 1;
+        g_gradient = 1;
+        b_gradient = 1;
         break;
       case '62':
         r_destination = parseInt(0   * scalar);
         g_destination = parseInt(0   * scalar);
         b_destination = parseInt(255 * scalar);
+        r_gradient = 1;
+        g_gradient = 1;
+        b_gradient = 1;
         break;
       case '64':
         r_destination = parseInt(200 * scalar);
         g_destination = parseInt(200 * scalar);
         b_destination = parseInt(0   * scalar);
+        r_gradient = 1;
+        g_gradient = 1;
+        b_gradient = 1;
         break;
       case '65':
         r_destination = parseInt(0   * scalar);
         g_destination = parseInt(200 * scalar);
         b_destination = parseInt(100 * scalar);
+        r_gradient = 1;
+        g_gradient = 200 / 255;
+        b_gradient = 100 / 255;
         break;
       case '67':
         r_destination = parseInt(50  * scalar);
         g_destination = parseInt(255 * scalar);
         b_destination = parseInt(0   * scalar);
+        r_gradient = 50 / 255;
+        g_gradient = 255 / 255;
+        b_gradient = 1;
         break;
       case '69':
         r_destination = parseInt(240 * scalar);
         g_destination = parseInt(150 * scalar);
         b_destination = parseInt(0   * scalar);
+        r_gradient = 240 / 255;
+        g_gradient = 150 / 255;
+        b_gradient = 1;
         break;
       case '71':
         r_destination = parseInt(200 * scalar);
         g_destination = parseInt(0   * scalar);
         b_destination = parseInt(200 * scalar);
+        r_gradient = 1;
+        g_gradient = 1;
+        b_gradient = 1;
         break;
       default:
         break;
@@ -122,3 +151,4 @@ oscServer.on("message", function (msg, rinfo) {
     b_destination = parseInt(b_destination * scalar);
   }
 });
+
