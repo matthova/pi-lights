@@ -17,7 +17,7 @@ let r_gradient = 1;
 let g_gradient = 1;
 let b_gradient = 1;
 
-const mult = 4;
+const mult = 8;
 
 let scalar = 0;
 
@@ -64,7 +64,7 @@ function scale() {
 setInterval(() => {
   scale();
   write_lights(parseInt(r_current), parseInt(g_current), parseInt(b_current));
-}, 1);
+}, 2);
 
 function rgb2Int(red, green, blue) {
   return ((red & 0xff) << 16) + ((green & 0xff) << 8) + (blue & 0xff);
