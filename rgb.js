@@ -29,7 +29,6 @@ function rgb2Int(red, green, blue) {
 }
 
 function write_lights(red, green, blue) {
-  // console.log('about to write', red, green, blue);
   for (let i = 0; i < NUM_LEDS; i++) {
     pixelData[i] = rgb2Int(red, green, blue);
   }
@@ -39,12 +38,11 @@ function write_lights(red, green, blue) {
 const oscServer = new osc.Server(1337, '0.0.0.0');
 
 oscServer.on("message", function (msg, rinfo) {
-  // console.log('message!', msg);
-  if (msg[0] === '/r') {
+  if (msg[0] === '/r0') {
     r_destination = parseInt(Number(msg[1]) * 255);
-  } else if (msg[0] === '/g') {
+  } else if (msg[0] === '/g0') {
     g_destination = parseInt(Number(msg[1]) * 255);
-  } else if (msg[0] === '/b') {
+  } else if (msg[0] === '/b0') {
     b_destination = parseInt(Number(msg[1]) * 255);
   }
 });
